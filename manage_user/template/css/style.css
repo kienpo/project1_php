@@ -1,0 +1,43 @@
+/* style proj */
+
+.mg-form{
+    margin-bottom: 10px;
+    display: flex;
+    flex-flow: column;
+}
+
+.mg-btn{
+    margin-top: 15px;
+    width: 100%;
+}
+.mg-btn.btn{
+    padding: 10px 0px;
+}
+button.mg-btn-op{
+    width: 25%;
+}
+a.mg-btn-op{
+    width: 25%;
+}
+
+.text-form-group{
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: black;
+}
+
+.form-group{
+    padding: 10px 8px;
+    font-size: 1.2rem;
+}
+.form-control{
+    padding: 10px 8px;
+    font-size: 1.2rem;
+}
+
+.error{
+    color: red;
+    font-size: 90%;
+    font-style: italic;
+}
+
