@@ -3,6 +3,9 @@ session_start();
 require_once('config.php');
 require_once('./include/connect.php');
 
+// excel
+require_once('./include/vendor/autoload.php');
+
 // thư viện phpmailer
 require_once('./include/phpmailer/Exception.php');
 require_once('./include/phpmailer/PHPMailer.php');

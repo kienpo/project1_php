@@ -12,7 +12,7 @@ if(!empty($filterAll['student_id'])){
 
     if($studentsDetail > 0){
         // thực hiện xóa
-        $deleteToken = delete('tokenstudents',"tokenStudents_Id = $studentId");
+        $deleteToken = delete('tokenstudents',"student_Id = $studentId");
         if($deleteToken){
             // Xóa user
             $deleteStudent = delete('students', "student_id = $studentId");
@@ -33,5 +33,11 @@ if(!empty($filterAll['student_id'])){
     setFlashData('msg_type', 'danger');
 }
 
-// redirect('?module=user&action=list')
+redirect('?module=students&action=view');
+
+$regexResult = checkPrivilege();
+if (!$regexResult){
+    echo 'Bạn không có quyền truy cập';exit;
+}
+
 ?>

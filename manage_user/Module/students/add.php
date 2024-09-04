@@ -7,9 +7,9 @@ $data = [
 ];
 layouts('header',$data);
 
-if(!isLogin()){
-    redirect('?module=auth&action=login');
-}
+// if(!isLogin()){
+//     redirect('?module=auth&action=login');
+// }
 
 if(isPost()){
     $filterAll = filter();
@@ -88,7 +88,7 @@ if(isPost()){
         if($insertStatus){
                 setFlashData('smg','Thêm sinh viên mới thành công.');
                 setFlashData('smg_type','success');
-                redirect('?module=viewdetail&action=view');
+                redirect('?module=students&action=view');
         }else{
             setFlashData('smg','Hệ thống đang lỗi vui lòng thử lại sau.');
             setFlashData('smg_type','danger');
@@ -109,6 +109,11 @@ $smg = getFlashData('smg');
 $smg_type = getFlashData('smg_type');
 $errors = getFlashData('errors');
 $old = getFlashData('old');
+
+$regexResult = checkPrivilege();
+if (!$regexResult){
+    echo 'Bạn không có quyền truy cập';exit;
+}
 
 ?>
 <!DOCTYPE html>
@@ -143,7 +148,7 @@ $old = getFlashData('old');
     <div class="container-fluid">
         <nav class="bg-dark">
             <ul class="nav nav-item">
-                <li class="nav-item"><a class="nav-link p-4 fs-3 text-white" href=""><i class="fa-solid fa-house"><span class="ms-2">DashBoard</span></i></a></li>
+                <li class="nav-item"><a class="nav-link p-4 fs-3 text-white" href="?module=home&action=dashboard"><i class="fa-solid fa-house"><span class="ms-3">DashBoard</span></i></a></li>
             </ul>
             <ul class="nav flex-column fs-4">
                 <li class="nav-item mb-3 "><a class="nav-link text-white" href="?module=students&action=add">Thêm mới sinh viên</a></li>
@@ -204,7 +209,7 @@ $old = getFlashData('old');
                         </div>
             
                         <button type="submit" class="mg-btn-op btn btn-primary btn-block">Thêm sinh viên</button>
-                        <a href="?module=home&action=dashboard" class="mg-btn-op btn btn-success btn-block">Quay lại</a>
+                        <a href="?module=students&action=view" class="mg-btn-op btn btn-success btn-block">Quay lại</a>
                         <hr>
                     </form>
                 </div>

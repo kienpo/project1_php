@@ -1,204 +1,255 @@
 <?php
-if (!defined('_Code')) {
+if(!defined('_Code')){
     die('Access denied...');
 }
 
 $data = [
-    'pageTitle' => 'Lọc Danh Sách Sinh Viên Được Công Nhận Điểm'
+    'pageTitle' => 'Lọc Danh Sách Sinh Viên'
 ];
 layouts('header', $data);
 
-if (!isLogin()) {
-    redirect('?module=auth&action=login');
+// if(!isLogin()){
+//     redirect('?module=auth&action=login');
+// }
+
+$per_page_record = 5;  // Number of entries to show in a page
+$page = isset($_GET["page"]) ? (int)$_GET["page"] : 1; // Get the current page number
+$start_from = ($page - 1) * $per_page_record; // Calculate the starting record index
+
+// Get the search filter value
+$searchStatus = isset($_POST['searchStatus']) ? $_POST['searchStatus'] : '';
+
+// Query to count the total number of records based on filter
+$count_query = "
+    SELECT COUNT(*) 
+    FROM results sc
+    JOIN students s ON sc.student_Id = s.student_id
+    JOIN courses c ON sc.course_Id = c.course_id
+";
+
+// If a search filter is applied, modify the count query
+if ($searchStatus !== '') {
+    $count_query .= " WHERE sc.approved = ?";
 }
 
-// Fetching filter and search parameters from the request
-$filter = filter();
-$search = $filter['search'] ?? '';
-$decision_id = $filter['decision_id'] ?? '';
-$class = $filter['class'] ?? '';
-$department = $filter['department'] ?? '';
-$course = $filter['course'] ?? '';
-$sort = $filter['sort'] ?? 'student_name';
-$order = $filter['order'] ?? 'ASC';
+$stmt = $conn->prepare($count_query);
 
-// Building the SQL query
-$sql = "SELECT students.*, results.approved, decisions.decision_date
-        FROM students 
-        JOIN results ON students.student_id = results.student_id 
-        JOIN decisions ON results.approved = decisions.approved
-        WHERE 1=1";
-
-if (!empty($search)) {
-    $sql .= " AND (students.student_name LIKE '%$search%' OR students.student_code LIKE '%$search%')";
+if ($searchStatus !== '') {
+    $stmt->execute([$searchStatus]);
+} else {
+    $stmt->execute();
 }
 
-if (!empty($decision_id)) {
-    $sql .= " AND results.approved = '$decision_id'";
+$total_records = $stmt->fetchColumn();
+
+// Main query to fetch paginated data
+$query = "
+    SELECT 
+        sc.*, 
+        s.student_name, 
+        s.student_code,
+        c.course_name 
+    FROM 
+        results sc
+    JOIN 
+        students s 
+    ON 
+        sc.student_Id = s.student_id 
+    JOIN 
+        courses c 
+    ON 
+        sc.course_Id = c.course_id 
+";
+
+// Apply search filter
+if ($searchStatus !== '') {
+    $query .= " WHERE sc.approved = :searchStatus";
 }
 
-if (!empty($class)) {
-    $sql .= " AND students.class = '$class'";
+// Apply pagination limits
+$query .= " ORDER BY sc.update_at LIMIT :start_from, :per_page_record";
+
+$stmt = $conn->prepare($query);
+
+// Bind the parameters
+if ($searchStatus !== '') {
+    $stmt->bindValue(':searchStatus', $searchStatus, PDO::PARAM_INT);
+}
+$stmt->bindValue(':start_from', $start_from, PDO::PARAM_INT);
+$stmt->bindValue(':per_page_record', $per_page_record, PDO::PARAM_INT);
+
+$stmt->execute();
+$ListUser = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$smg = getFlashData('smg');
+$smg_type = getFlashData('smg_type');
+
+$regexResult = checkPrivilege();
+if (!$regexResult){
+    echo 'Bạn không có quyền truy cập';exit;
 }
 
-if (!empty($department)) {
-    $sql .= " AND students.department = '$department'";
-}
-
-if (!empty($course)) {
-    $sql .= " AND results.course_id = '$course'";
-}
-
-$sql .= " ORDER BY $sort $order";
-
-$students = getRaw($sql);
-
-$msg = getFlashData('msg');
-$msg_type = getFlashData('msg_type');
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $data['pageTitle'] ?></title>
     <style>
         .container-fluid {
             display: flex;
             margin-top: -16px;
+            height: 100vh;
         }
+
         nav {
             width: 340px;
             margin-left: -12px;
             padding-bottom: 260px;
         }
+
         .main-content {
             flex-grow: 1;
             padding: 20px;
         }
+
         .mb {
             padding-bottom: 46rem;
         }
+
+        .strengh {
+            width: 20rem;
+            height: 10rem;
+            margin-top: 3rem;
+        }
+
         .nav-item:hover {
             background-color: #343a40;
+            /* Change this to the color you want on hover */
+        }
+
+        .dp {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .pagination {
+            display: inline-block;
+        }
+
+        .pagination a {
+            font-weight: bold;
+            font-size: 18px;
+            color: black;
+            float: left;
+            padding: 8px 16px;
+            text-decoration: none;
+            border: 1px solid black;
+        }
+
+        .pagination a.active {
+            background-color: pink;
+        }
+
+        .pagination a:hover:not(.active) {
+            background-color: skyblue;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <nav class="bg-dark">
-            <ul class="nav nav-item">
-                <li class="nav-item"><a class="nav-link p-4 fs-3 text-white" href=""><i class="fa-solid fa-house"><span class="ms-2">DashBoard</span></i></a></li>
-            </ul>
-            <ul class="nav flex-column fs-4">
-                <li class="nav-item mb-3"><a class="nav-link text-white" href="?module=students&action=filter">Lọc danh sách sinh viên</a></li>
-            </ul>
-        </nav>
-        <div class="main-content">
-            <div class="container">
-                <div class="row" style="margin: 50px auto;">
-                    <h2 class="text-center text-uppercase"><?= $data['pageTitle'] ?></h2>
-                    <?php if (!empty($msg)): ?>
-                        <div class="alert alert-<?= htmlspecialchars($msg_type) ?>">
-                            <?= htmlspecialchars($msg) ?>
-                        </div>
-                    <?php endif; ?>
-                    <form action="" method="get">
-                        <input type="hidden" name="module" value="students">
-                        <input type="hidden" name="action" value="filter">
-                        <div class="form-row">
-                            <div class="form-group col-md-3">
-                                <label for="search">Tìm kiếm sinh viên</label>
-                                <input type="text" name="search" class="form-control" id="search" value="<?= htmlspecialchars($search) ?>" placeholder="Tên hoặc mã sinh viên">
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="decision_id">Quyết định công nhận</label>
-                                <select name="decision_id" class="form-control" id="decision_id">
-                                    <option value="">-- Chọn --</option>
-                                    <!-- Assuming decisions table has decision_id and decision_name columns -->
-                                    <?php foreach (getRaw("SELECT * FROM decisions") as $decision): ?>
-                                        <option value="<?= $decision['decision_id'] ?>" <?= $decision_id == $decision['decision_id'] ? 'selected' : '' ?>>
-                                            <?= $decision['decision_name'] ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="class">Lớp</label>
-                                <input type="text" name="class" class="form-control" id="class" value="<?= htmlspecialchars($class) ?>">
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="department">Khoa</label>
-                                <input type="text" name="department" class="form-control" id="department" value="<?= htmlspecialchars($department) ?>">
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="course">Khóa học</label>
-                                <input type="text" name="course" class="form-control" id="course" value="<?= htmlspecialchars($course) ?>">
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="sort">Sắp xếp theo</label>
-                                <select name="sort" class="form-control" id="sort">
-                                    <option value="student_name" <?= $sort == 'student_name' ? 'selected' : '' ?>>Tên sinh viên</option>
-                                    <option value="student_code" <?= $sort == 'student_code' ? 'selected' : '' ?>>Mã sinh viên</option>
-                                    <option value="approved" <?= $sort == 'approved' ? 'selected' : '' ?>>Trạng thái công nhận</option>
-                                </select>
-                            </div>
-                            <div class="form-group col-md-3">
-                                <label for="order">Thứ tự</label>
-                                <select name="order" class="form-control" id="order">
-                                    <option value="ASC" <?= $order == 'ASC' ? 'selected' : '' ?>>Tăng dần</option>
-                                    <option value="DESC" <?= $order == 'DESC' ? 'selected' : '' ?>>Giảm dần</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Lọc</button>
-                    </form>
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover mt-4">
-                            <thead>
-                                <tr>
-                                    <th>Mã sinh viên</th>
-                                    <th>Tên sinh viên</th>
-                                    <th>Lớp</th>
-                                    <th>Khoa</th>
-                                    <th>Khóa học</th>
-                                    <th>Điểm</th>
-                                    <th>Quyết định công nhận</th>
-                                    <th>Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (!empty($students)): ?>
-                                    <?php foreach ($students as $student): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($student['student_code']) ?></td>
-                                            <td><?= htmlspecialchars($student['student_name']) ?></td>
-                                            <td><?= htmlspecialchars($student['class']) ?></td>
-                                            <td><?= htmlspecialchars($student['department']) ?></td>
-                                            <td><?= htmlspecialchars($student['course']) ?></td>
-                                            <td><?= htmlspecialchars($student['grade']) ?></td>
-                                            <td><?= htmlspecialchars($student['decision_name']) ?></td>
-                                            <td><a href="?module=students&action=detail&id=<?= $student['student_id'] ?>" class="btn btn-info">Xem chi tiết</a></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="8" class="text-center">Không tìm thấy sinh viên nào</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php if (!empty($students)): ?>
-                        <div class="mt-4">
-                            <strong>Tổng số sinh viên: <?= count($students) ?></strong>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
+<div class="container">
+    <hr>
+    <h2>Kết quả công nhận điểm</h2>
+    
+    <!-- Bộ lọc -->
+    <form action="?module=students&action=filter" method="post">
+        <div class="form-group fs-4">
+            <label for="searchStatus">Trạng thái công nhận điểm</label>
+            <select class="form-control fs-5" name="searchStatus" id="searchStatus">
+                <option value="">Tất cả</option>
+                <option value="1" <?php echo $searchStatus === '1' ? 'selected' : ''; ?>>Đã công nhận</option>
+                <option value="0" <?php echo $searchStatus === '0' ? 'selected' : ''; ?>>Chưa công nhận</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary fs-5">Lọc kết quả</button>
+    </form>
+
+    <!-- Bảng kết quả -->
+    <div id="resultTable">
+        <table class="table table-bordered table-font fs-5">
+            <thead>
+                <tr>
+                    <th>Stt</th>
+                    <th>Tên sinh viên</th>
+                    <th>Mã sinh viên</th>
+                    <th>Môn học phần</th>
+                    <th>Điểm</th>
+                    <th>Trạng thái công nhận điểm</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                    if(!empty($ListUser)):
+                        $count = ($page - 1) * $per_page_record + 1;
+                        foreach($ListUser as $item):
+                ?>
+                <tr>
+                    <td><?php echo $count++; ?></td>
+                    <td><?php echo htmlspecialchars($item['student_name']); ?></td>
+                    <td><?php echo htmlspecialchars($item['student_code']); ?></td>
+                    <td><?php echo htmlspecialchars($item['course_name']); ?></td>
+                    <td><?php echo htmlspecialchars($item['marks']); ?></td>
+                    <td><?php echo $item['approved'] == 1 ? '<button class="btn btn-success btn-sm">Đã công nhận</button>' 
+                    : '<button class="btn btn-danger btn-sm">Chưa công nhận</button>'; ?></td>
+                </tr>    
+                <?php
+                        endforeach;
+                    else:
+                ?>
+                    <tr>
+                        <td colspan="8">
+                            <div class="alert alert-danger text-center">Không có kết quả công nhận điểm nào</div>
+                        </td>
+                    </tr>
+                <?php    
+                    endif;
+                ?>
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            <?php
+            $query = "SELECT COUNT(*) FROM results";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $item = $stmt->fetch(PDO::FETCH_NUM);
+            $total_records = $item[0];
+
+            echo "</br>";
+            // Number of pages required.   
+            $total_pages = ceil($total_records / $per_page_record);
+            $pagLink = "";
+
+            if ($page >= 2) {
+                echo "<a href='?module=students&action=filter&page=" . ($page - 1) . "'>Prev</a>";
+            }
+
+            for ($i = 1; $i <= $total_pages; $i++) {
+                if ($i == $page) {
+                    $pagLink .= "<a class='active' href='?module=students&action=filter&page=" . $i . "'>" . $i . "</a>";
+                } else {
+                    $pagLink .= "<a href='?module=students&action=filter&page=" . $i . "'>" . $i . "</a>";
+                }
+            }
+            echo $pagLink;
+
+            if ($page < $total_pages) {
+                echo "<a href='?module=students&action=filter&page=" . ($page + 1) . "'>Next</a>";
+            }
+            ?>
         </div>
     </div>
+</div>
 </body>
 </html>
 

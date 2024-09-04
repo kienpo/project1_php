@@ -127,7 +127,11 @@ $old = getFlashData('old');
 
 <div class="row">
     <div class="col-4" style="margin: 50px auto;">
-        <h2 class="text-center text-uppercase">Đăng ký tài khoản User</h2>
+        <br><br>
+        <div class="d-flex justify-content-center">
+            <img src=" <?php echo _WEB_HOST_TEMPLATE; ?> /image/vku.png" alt="">
+        </div>
+        <br>
         <?php
             if(!empty($smg)){
                 getSmg($smg,$smg_type);
@@ -135,7 +139,7 @@ $old = getFlashData('old');
         ?>
         <form action="" method="post">
             <div class="form-group mg-form">
-                <label for="" class="text-form-group">Họ tên</label>
+                <!-- <label for="" class="text-form-group">Họ tên</label> -->
                 <input name="fullname" type="fullname" placeholder="Họ tên" class="form-group" value="<?php 
                     echo old('fullname',$old);
                 ?>">
@@ -144,7 +148,7 @@ $old = getFlashData('old');
                 ?>
             </div>
             <div class="form-group mg-form">
-                <label for="" class="text-form-group">Email</label>
+                <!-- <label for="" class="text-form-group">Email</label> -->
                 <input name="email" type="email" placeholder="Địa chỉ email" class="form-group" value="<?php 
                     echo old('email',$old);
                 ?>">
@@ -153,7 +157,7 @@ $old = getFlashData('old');
                 ?>
             </div>
             <div class="form-group mg-form">
-                <label for="" class="text-form-group">Số điện thoại</label>
+                <!-- <label for="" class="text-form-group">Số điện thoại</label> -->
                 <input name="phone" type="sđt" placeholder="Số điện thoại" class="form-group" value="<?php 
                     echo old('phone',$old);
                 ?>">
@@ -162,14 +166,14 @@ $old = getFlashData('old');
                 ?>
             </div>
             <div class="form-group mg-form">
-                <label for="" class="text-form-group">PassWord</label>
+                <!-- <label for="" class="text-form-group">PassWord</label> -->
                 <input name="password" type="password" placeholder="Mật khẩu" class="form-group">
                 <?php
                     echo form_error('password', '<span class="error">', '</span>', $errors);
                 ?>
             </div>
             <div class="form-group mg-form">
-                <label for="" class="text-form-group">Repeat PassWord</label>
+                <!-- <label for="" class="text-form-group">Repeat PassWord</label> -->
                 <input name="confirm-password" type="password" placeholder="Nhập lại mật khẩu" class="form-group">
                 <?php
                     echo form_error('confirm-password', '<span class="error">', '</span>', $errors);

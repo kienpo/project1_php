@@ -79,7 +79,11 @@ $smg_type = getFlashData('smg_type');
 
 <div class="row">
     <div class="col-4" style="margin: 50px auto;">
-        <h2 class="text-center text-uppercase">Quên Mật Khẩu</h2>
+        <br><br><br>
+        <div class="d-flex justify-content-center">
+            <img src=" <?php echo _WEB_HOST_TEMPLATE; ?> /image/vku.png" alt="">
+        </div>
+        <br><br>
         <?php
             if(!empty($smg)){
                 getSmg($smg, $smg_type);
@@ -87,7 +91,7 @@ $smg_type = getFlashData('smg_type');
         ?>
         <form action="" method="post">
             <div class="form-group mg-form">
-                <label for="" class="text-form-group">Email</label>
+                <!-- <label for="" class="text-form-group">Email</label> -->
                 <input name="email" type="email" placeholder="Địa chỉ email" class="form-group">
             </div> 
 

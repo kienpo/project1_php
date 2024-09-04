@@ -7,9 +7,9 @@ $data = [
 ];
 layouts('header',$data);
 
-if(!isLogin()){
-    redirect('?module=auth&action=login');
-}
+// if(!isLogin()){
+//     redirect('?module=auth&action=login');
+// }
 
 $filterAll = filter();
 // $studentId = null;
@@ -132,9 +132,12 @@ $studentsDetailll = getFlashData('students-detail');
 //     $old = $studentsDetailll;
 // }
 
+$regexResult = checkPrivilege();
+if (!$regexResult){
+    echo 'Bạn không có quyền truy cập';exit;
+}
+
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -167,7 +170,7 @@ $studentsDetailll = getFlashData('students-detail');
     <div class="container-fluid">
         <nav class="bg-dark">
             <ul class="nav nav-item">
-                <li class="nav-item"><a class="nav-link p-4 fs-3 text-white" href=""><i class="fa-solid fa-house"><span class="ms-2">DashBoard</span></i></a></li>
+                <li class="nav-item"><a class="nav-link p-4 fs-3 text-white" href="?module=home&action=dashboard"><i class="fa-solid fa-house"><span class="ms-3">DashBoard</span></i></a></li>
             </ul>
             <ul class="nav flex-column fs-4">
                 <li class="nav-item mb-3 "><a class="nav-link text-white" href="?module=students&action=add">Thêm mới sinh viên</a></li>
@@ -230,7 +233,7 @@ $studentsDetailll = getFlashData('students-detail');
                         <input type="hidden" name="student_id" value="<?php echo $studentId ?>">
             
                         <button type="submit" class="mg-btn-op btn btn-primary btn-block">Cập nhật thông tin sinh viên</button>
-                        <a href="?module=viewdetail&action=view" class="mg-btn-op btn btn-success btn-block">Quay lại</a>
+                        <a href="?module=students&action=view" class="mg-btn-op btn btn-success btn-block">Quay lại</a>
                         <hr>
                     </form>
                 </div>

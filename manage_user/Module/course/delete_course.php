@@ -2,22 +2,23 @@
 if(!defined('_Code')){
     die('Access denied...');
 }
+
 // Kiểm tra id có tồn tại => tiến hành xóa
 // Xóa dữ liệu bằng logintoken
 
 $filterAll = filter();
-if(!empty($filterAll['id'])){
-    $userId = $filterAll['id'];
-    $userDetail = getRaw("SELECT * FROM user WHERE id = $userId");
+if(!empty($filterAll['course_id'])){
+    $courseId = $filterAll['course_id'];
+    $courseDetail = getRaw("SELECT * FROM courses WHERE course_id = $courseId");
 
-    if($userDetail > 0){
+    if($courseDetail > 0){
         // thực hiện xóa
-        $deleteToken = delete('tokenlogin',"user_Id = $userId");
+        $deleteToken = delete('tokencourse',"course_Id = $courseId");
         if($deleteToken){
-            // Xóa user
-            $deleteUser = delete('user', "id = $userId");
-            if($deleteUser){
-                setFlashData('smg', 'Xóa người dùng thành công.');
+            // Xóa học phần
+            $deleteCourse = delete('courses', "course_id = $courseId");
+            if($deleteCourse){
+                setFlashData('smg', 'Xóa học phần thành công.');
                 setFlashData('msg_type', 'success');
             }else{
                 setFlashData('smg', 'Lỗi hệ thống.');
@@ -25,7 +26,7 @@ if(!empty($filterAll['id'])){
             }
         }
     }else{
-        setFlashData('smg', 'Người dùng không tồn tại trong hệ thống.');
+        setFlashData('smg', 'Học phần không tồn tại trong hệ thống.');
         setFlashData('msg_type', 'danger');
     }
 }else{
@@ -33,12 +34,10 @@ if(!empty($filterAll['id'])){
     setFlashData('msg_type', 'danger');
 }
 
-redirect('?module=user&action=list');
+redirect('?module=course&action=view_course');
 
 $regexResult = checkPrivilege();
 if (!$regexResult){
     echo 'Bạn không có quyền truy cập';exit;
 }
-
-
 ?>

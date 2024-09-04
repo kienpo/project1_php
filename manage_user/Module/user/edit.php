@@ -21,7 +21,7 @@ if(!empty($filterAll['id'])){
 }
 
 $data = [
-    'pageTitle' => 'Đăng ký tài khoản'
+    'pageTitle' => 'Cập nhật tài khoản'
 ];
 
 // $kq = getRows('SELECT * FROM user');
@@ -70,7 +70,6 @@ if(isPost()){
         }
     }
 
-    
     if(empty($errors)){
 
         $dataUpdate = [
@@ -105,7 +104,6 @@ if(isPost()){
     redirect('?module=user&action=edit&id=', $userId);  
 }
 
-
 layouts('header-login',$data);
 
 $smg = getFlashData('smg');
@@ -118,9 +116,10 @@ if(!empty($userDetailll)){
     $old = $userDetailll;
 }
 
-// echo '<pre>';
-// print_r($userDetail);
-// echo '</pre>';
+$regexResult = checkPrivilege();
+if (!$regexResult){
+    echo 'Bạn không có quyền truy cập';exit;
+}
 
 ?>
 
@@ -168,7 +167,7 @@ if(!empty($userDetailll)){
 
                 <div class="col">
                     <div class="form-group mg-form">
-                        <label for="" class="text-form-group">PassWord</label>
+                        <label for="" class="text-form-group">Password</label>
                         <input name="password" type="password" placeholder="Mật khẩu (không nhập nếu không thay đổi mật khẩu)" class="form-group">
                         <?php
                             echo form_error('password', '<span class="error">', '</span>', $errors);
@@ -176,7 +175,7 @@ if(!empty($userDetailll)){
                     </div>
 
                     <div class="form-group mg-form">
-                        <label for="" class="text-form-group">Repeat PassWord</label>
+                        <label for="" class="text-form-group">Repeat Password</label>
                         <input name="confirm-password" type="password" placeholder="Nhập lại mật khẩu (không nhập nếu không thay đổi mật khẩu)" class="form-group">
                         <?php
                             echo form_error('confirm-password', '<span class="error">', '</span>', $errors);

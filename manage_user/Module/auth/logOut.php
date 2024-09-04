@@ -8,6 +8,6 @@ if(isLogin()){
     $token = getSession('tokenlogin');
     delete('tokenlogin', "token = '$token'");
     removeSession('tokenlogin');
-    redirect('?module=auth&action=login');
 }
+redirect('?module=auth&action=login');
 ?>

@@ -37,7 +37,7 @@ if(!defined('_Code')){
         <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
           <li><a href="#" class="nav-link px-2 link-secondary fs-4 ">KT&DBCLGD</a></li>
           <span class="border-end mx-2" style="height: 2rem;margin-top: 10px;"></span>
-          <li><a href="#" class="nav-link px-2 link-body-emphasis fs-4">Admin</a></li>
+          <li><a href="?module=home&action=dashboard" class="nav-link px-2 link-body-emphasis fs-4">Admin</a></li>
         </ul>
 
         <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3" role="search">

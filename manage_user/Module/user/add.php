@@ -105,8 +105,11 @@ $old = getFlashData('old');
 // print_r($old);
 // echo '</pre>';
 
+$regexResult = checkPrivilege();
+if (!$regexResult){
+    echo 'Bạn không có quyền truy cập';exit;
+}
 ?>
-
 <div class="container">
     <div class="row" style="margin: 50px auto;">
         <h2 class="text-center text-uppercase">Thêm người dùng</h2>

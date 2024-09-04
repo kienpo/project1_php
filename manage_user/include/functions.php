@@ -14,6 +14,7 @@ function layouts($layoutName='header', $data=[]){
     }
 }
 
+
 // Hàm gửi mail
 function sendMail($to, $subject, $content){
 
@@ -210,4 +211,21 @@ function isLogin(){
 return $checkLogin;
 }
 
+function checkPrivilege($uri = false) {
+    // Lấy URL hiện tại hoặc giá trị truyền vào
+    $uri = $uri != false ? $uri : $_SERVER['REQUEST_URI'];
+
+     // Kiểm tra nếu privileges tồn tại và là mảng
+     if (isset($_SESSION['userData']['privileges']) && is_array($_SESSION['userData']['privileges'])) {
+        $privileges = $_SESSION['userData']['privileges'];
+        $privileges = implode("|", $privileges);
+        preg_match('/'.$privileges.'/', $uri, $matches);
+        return !empty($matches);
+    } else {
+        return false; // Không có quyền nào được thiết lập hoặc không phải là mảng
+    }   
+    
+}
+
 ?>
+
