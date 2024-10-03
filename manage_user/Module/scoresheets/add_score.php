@@ -27,7 +27,7 @@ if (isPost()) {
             $studentExists = oneRaw($studentCheckQuery, ['student_id' => $filterAll['student_Id']]);
             if (!$studentExists) {
                 $errors['student_Id']['not_found'] = 'Mã sinh viên không tồn tại trong hệ thống';
-            }else {
+            } else {
                 // Retrieve the course name if it exists
                 $studentName = $studentExists['student_name'];
             }
@@ -38,19 +38,19 @@ if (isPost()) {
     if (empty($filterAll['course_Id'])) {
         $errors['course_Id']['required'] = 'Mã học phần bắt buộc phải nhập';
     } else {
-    if (!is_numeric($filterAll['course_Id']) || $filterAll['course_Id'] <= 0) {
-        $errors['course_Id']['invalid'] = 'Mã học phần phải là số dương';
-    } else {
-        // Check if course_Id exists in the courses table
-        $courseCheckQuery = "SELECT course_name FROM courses WHERE course_id = course_id";
-        $courseExists = oneRaw($courseCheckQuery, ['course_id' => $filterAll['course_Id']]);
-        if (!$courseExists) {
-            $errors['course_Id']['not_found'] = 'Mã học phần không tồn tại trong hệ thống';
+        if (!is_numeric($filterAll['course_Id']) || $filterAll['course_Id'] <= 0) {
+            $errors['course_Id']['invalid'] = 'Mã học phần phải là số dương';
         } else {
-            // Retrieve the course name if it exists
-            $courseName = $courseExists['course_name'];
+            // Check if course_Id exists in the courses table
+            $courseCheckQuery = "SELECT course_name FROM courses WHERE course_id = course_id";
+            $courseExists = oneRaw($courseCheckQuery, ['course_id' => $filterAll['course_Id']]);
+            if (!$courseExists) {
+                $errors['course_Id']['not_found'] = 'Mã học phần không tồn tại trong hệ thống';
+            } else {
+                // Retrieve the course name if it exists
+                $courseName = $courseExists['course_name'];
+            }
         }
-    }
     }
     // Validate attendance_points
     if (isset($filterAll['attendance_points']) && (!is_numeric($filterAll['attendance_points']) || $filterAll['attendance_points'] < 0 || $filterAll['attendance_points'] > 10)) {
@@ -118,89 +118,96 @@ $errors = getFlashData('errors');
 $old = getFlashData('old');
 
 $regexResult = checkPrivilege();
-if (!$regexResult){
-    echo 'Bạn không có quyền truy cập';exit;
+if (!$regexResult) {
+    echo 'Bạn không có quyền truy cập';
+    exit;
 }
 
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thêm điểm học tập mới</title>
-</head>
-<body>
-    <div class="container">
-        <h2>Thêm điểm học tập mới</h2>
+
+<div class="container">
+    <div class="row" style="margin: 50px auto;">
+        <h2 class="text-center text-uppercase">Thêm điểm học tập mới</h2>
         <?php if (!empty($msg)): ?>
             <div class="alert alert-<?= htmlspecialchars($msg_type) ?>">
                 <?= htmlspecialchars($msg) ?>
             </div>
         <?php endif; ?>
         <form action="" method="post">
-            <div class="form-group">
-                <label for="student_Id">Mã sinh viên</label>
-                <input type="text" name="student_Id" class="form-control" id="student_Id" value="<?= htmlspecialchars($old['student_Id'] ?? '') ?>">
-                <?php if (!empty($errors['student_Id'])): ?>
-                    <span class="text-danger"><?= $errors['student_Id']['required'] ?? '' ?></span>
-                    <span class="text-danger"><?= $errors['student_Id']['invalid'] ?? '' ?></span>
-                    <span class="text-danger"><?= $errors['student_Id']['not_found'] ?? '' ?></span>
-                <?php endif; ?>
+            <div class="row">
+                <div class="col">
+                    <div class="form-group mg-form">
+                        <label for="student_Id" class="text-form-group">Mã sinh viên</label>
+                        <input type="text" name="student_Id" class="form-control" id="student_Id" value="<?= htmlspecialchars($old['student_Id'] ?? '') ?>">
+                        <?php if (!empty($errors['student_Id'])): ?>
+                            <span class="text-danger"><?= $errors['student_Id']['required'] ?? '' ?></span>
+                            <span class="text-danger"><?= $errors['student_Id']['invalid'] ?? '' ?></span>
+                            <span class="text-danger"><?= $errors['student_Id']['not_found'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group mg-form">
+                        <label for="course_Id" class="text-form-group">Mã học phần</label>
+                        <input type="text" name="course_Id" class="form-control" id="course_Id" value="<?= htmlspecialchars($old['course_Id'] ?? '') ?>">
+                        <?php if (!empty($errors['course_Id'])): ?>
+                            <span class="text-danger"><?= $errors['course_Id']['required'] ?? '' ?></span>
+                            <span class="text-danger"><?= $errors['course_Id']['invalid'] ?? '' ?></span>
+                            <span class="text-danger"><?= $errors['course_Id']['not_found'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group mg-form">
+                        <label for="attendance_points" class="text-form-group">Điểm chuyên cần</label>
+                        <input type="number" name="attendance_points" class="form-control" id="attendance_points" step="0.01" value="<?= htmlspecialchars($old['attendance_points'] ?? '') ?>">
+                        <?php if (!empty($errors['attendance_points'])): ?>
+                            <span class="text-danger"><?= $errors['attendance_points']['invalid'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group mg-form">
+                        <label for="exercise_points" class="text-form-group">Điểm bài tập</label>
+                        <input type="number" name="exercise_points" class="form-control" id="exercise_points" step="0.01" value="<?= htmlspecialchars($old['exercise_points'] ?? '') ?>">
+                        <?php if (!empty($errors['exercise_points'])): ?>
+                            <span class="text-danger"><?= $errors['exercise_points']['invalid'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group mg-form">
+                        <label for="midterm_score" class="text-form-group">Điểm giữa kỳ</label>
+                        <input type="number" name="midterm_score" class="form-control" id="midterm_score" step="0.01" value="<?= htmlspecialchars($old['midterm_score'] ?? '') ?>">
+                        <?php if (!empty($errors['midterm_score'])): ?>
+                            <span class="text-danger"><?= $errors['midterm_score']['invalid'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group mg-form">
+                        <label for="final_score" class="text-form-group">Điểm cuối kỳ</label>
+                        <input type="number" name="final_score" class="form-control" id="final_score" step="0.01" value="<?= htmlspecialchars($old['final_score'] ?? '') ?>">
+                        <?php if (!empty($errors['final_score'])): ?>
+                            <span class="text-danger"><?= $errors['final_score']['invalid'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group mg-form">
+                        <label for="T10_point" class="text-form-group">Điểm hệ số 10</label>
+                        <input type="number" name="T10_point" class="form-control" id="T10_point" step="0.01" value="<?= htmlspecialchars($old['T10_point'] ?? '') ?>">
+                        <?php if (!empty($errors['T10_point'])): ?>
+                            <span class="text-danger"><?= $errors['T10_point']['invalid'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group mg-form">
+                        <label for="letter_grades" class="text-form-group">Điểm chữ</label>
+                        <input type="text" name="letter_grades" class="form-control" id="letter_grades" value="<?= htmlspecialchars($old['letter_grades'] ?? '') ?>">
+                        <?php if (!empty($errors['letter_grades'])): ?>
+                            <span class="text-danger"><?= $errors['letter_grades']['invalid'] ?? '' ?></span>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="course_Id">Mã học phần</label>
-                <input type="text" name="course_Id" class="form-control" id="course_Id" value="<?= htmlspecialchars($old['course_Id'] ?? '') ?>">
-                <?php if (!empty($errors['course_Id'])): ?>
-                    <span class="text-danger"><?= $errors['course_Id']['required'] ?? '' ?></span>
-                    <span class="text-danger"><?= $errors['course_Id']['invalid'] ?? '' ?></span>
-                    <span class="text-danger"><?= $errors['course_Id']['not_found'] ?? '' ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="form-group">
-                <label for="attendance_points">Điểm chuyên cần</label>
-                <input type="number" name="attendance_points" class="form-control" id="attendance_points" step="0.01" value="<?= htmlspecialchars($old['attendance_points'] ?? '') ?>">
-                <?php if (!empty($errors['attendance_points'])): ?>
-                    <span class="text-danger"><?= $errors['attendance_points']['invalid'] ?? '' ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="form-group">
-                <label for="exercise_points">Điểm bài tập</label>
-                <input type="number" name="exercise_points" class="form-control" id="exercise_points" step="0.01" value="<?= htmlspecialchars($old['exercise_points'] ?? '') ?>">
-                <?php if (!empty($errors['exercise_points'])): ?>
-                    <span class="text-danger"><?= $errors['exercise_points']['invalid'] ?? '' ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="form-group">
-                <label for="midterm_score">Điểm giữa kỳ</label>
-                <input type="number" name="midterm_score" class="form-control" id="midterm_score" step="0.01" value="<?= htmlspecialchars($old['midterm_score'] ?? '') ?>">
-                <?php if (!empty($errors['midterm_score'])): ?>
-                    <span class="text-danger"><?= $errors['midterm_score']['invalid'] ?? '' ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="form-group">
-                <label for="final_score">Điểm cuối kỳ</label>
-                <input type="number" name="final_score" class="form-control" id="final_score" step="0.01" value="<?= htmlspecialchars($old['final_score'] ?? '') ?>">
-                <?php if (!empty($errors['final_score'])): ?>
-                    <span class="text-danger"><?= $errors['final_score']['invalid'] ?? '' ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="form-group">
-                <label for="T10_point">Điểm hệ số 10</label>
-                <input type="number" name="T10_point" class="form-control" id="T10_point" step="0.01" value="<?= htmlspecialchars($old['T10_point'] ?? '') ?>">
-                <?php if (!empty($errors['T10_point'])): ?>
-                    <span class="text-danger"><?= $errors['T10_point']['invalid'] ?? '' ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="form-group">
-                <label for="letter_grades">Điểm chữ</label>
-                <input type="text" name="letter_grades" class="form-control" id="letter_grades" value="<?= htmlspecialchars($old['letter_grades'] ?? '') ?>">
-                <?php if (!empty($errors['letter_grades'])): ?>
-                    <span class="text-danger"><?= $errors['letter_grades']['invalid'] ?? '' ?></span>
-                <?php endif; ?>
-            </div>
-            <button type="submit" class="btn btn-primary">Thêm</button>
+
+            <button type="submit" class="mg-btn-op btn btn-primary btn-block fs-4">Thêm điểm học tập</button>
+            <a href="?module=scoresheets&action=student_courses" class="mg-btn-op btn btn-success btn-block fs-4">Quay lại</a>
+            <hr>
         </form>
     </div>
-</body>
-</html>
+</div>
+
+<?php
+layouts('footer-login')
+?>

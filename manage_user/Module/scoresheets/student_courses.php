@@ -15,59 +15,93 @@ layouts('header', $data);
 //     redirect('?module=auth&action=login');
 // }
 
-$search = isset($_GET['search']) ? trim($_GET['search']) : ''; // Lấy từ khóa tìm kiếm
+// Lấy thông tin người dùng từ session
+if (isset($_SESSION['userData'])) {
+    $userData = $_SESSION['userData'];
 
-$per_page_record = 5;  // Number of entries to show in a page
-$page = isset($_GET["page"]) ? (int)$_GET["page"] : 1; // Get the current page number
-$start_from = ($page - 1) * $per_page_record; // Calculate the starting record index
+    // Kiểm tra xem user_id và fullname có tồn tại trong mảng hay không
+    if (isset($userData['user_id']) && isset($userData['fullname'])) {
+        $userId = $userData['user_id'];
+        $fullname = $userData['fullname'];
 
-// truy vấn vào bảng user
-$query = "
-   SELECT 
-        sc.*, 
-        c.course_name,
-        s.student_name
-    FROM 
-        student_courses sc
-    JOIN 
-        courses c ON sc.course_Id = c.course_id
-    JOIN 
-        students s ON sc.student_Id = s.student_id
-    WHERE 1 ";
+        // Thiết lập các tham số phân trang và tìm kiếm
+        $search = isset($_GET['search']) ? trim($_GET['search']) : ''; // Lấy từ khóa tìm kiếm
+        $per_page_record = 5;  // Số lượng bản ghi trên mỗi trang
+        $page = isset($_GET["page"]) ? (int)$_GET["page"] : 1; // Lấy số trang hiện tại
+        $start_from = ($page - 1) * $per_page_record; // Tính chỉ số bản ghi bắt đầu
 
-if (!empty($search)) {
-    $query .= "AND (s.student_name LIKE :search OR c.course_name LIKE :search) ";
+        // Khởi tạo câu truy vấn chung cho admin và sinh viên
+        $query = "
+            SELECT 
+                sc.*, 
+                c.course_name,
+                s.student_name
+            FROM 
+                student_courses sc
+            JOIN 
+                courses c ON sc.course_Id = c.course_id
+            JOIN 
+                students s ON sc.student_Id = s.student_id
+            WHERE 1 ";
+
+        // Nếu user không phải là admin, thêm điều kiện để chỉ hiển thị bảng điểm của sinh viên liên kết
+        if ($fullname !== 'admin') {
+            $query .= "AND s.studentId = :userId "; // studentId liên kết với id của user
+        }
+
+        // Nếu có từ khóa tìm kiếm, thêm điều kiện tìm kiếm
+        if (!empty($search)) {
+            $query .= "AND (s.student_name LIKE :search OR c.course_name LIKE :search) ";
+        }
+
+        // Thêm điều kiện sắp xếp và phân trang
+        $query .= "ORDER BY sc.update_at LIMIT :start_from, :per_page_record";
+
+        // Chuẩn bị truy vấn
+        $stmt = $conn->prepare($query);
+
+        // Nếu user không phải là admin, gán giá trị cho biến `:userId`
+        if ($fullname !== 'admin') {
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+        }
+
+        // Nếu có từ khóa tìm kiếm, gán giá trị cho biến `:search`
+        if (!empty($search)) {
+            $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
+        }
+
+        // Gán giá trị cho biến `:start_from` và `:per_page_record`
+        $stmt->bindValue(':start_from', (int)$start_from, PDO::PARAM_INT);
+        $stmt->bindValue(':per_page_record', (int)$per_page_record, PDO::PARAM_INT);
+
+        // Thực thi truy vấn
+        $stmt->execute();
+
+        // Lấy danh sách kết quả
+        $ListUser = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        echo "Thông tin user không hợp lệ.";
+    }
+} else {
+    echo "Không tìm thấy thông tin user trong session.";
 }
-
-$query .= "ORDER BY sc.update_at LIMIT :start_from, :per_page_record";
-
-$stmt = $conn->prepare($query);
-
-if (!empty($search)) {
-    $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
-}
-
-$stmt->bindValue(':start_from', (int)$start_from, PDO::PARAM_INT);
-$stmt->bindValue(':per_page_record', (int)$per_page_record, PDO::PARAM_INT);
-
-$stmt->execute();
-$ListUser = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $smg = getFlashData('smg');
 $smg_type = getFlashData('smg_type');
 // $errors = getFlashData('errors');
 // $old = getFlashData('old');
 
-
 // kiểm tra quyền truy cập
 $regexResult = checkPrivilege();
-if (!$regexResult){
-    echo 'Bạn không có quyền truy cập';exit;
+if (!$regexResult) {
+    echo 'Bạn không có quyền truy cập';
+    exit;
 }
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -77,34 +111,81 @@ if (!$regexResult){
             margin-top: -16px;
             height: 100vh;
         }
-        nav {
-            width: 340px;
-            margin-left: -12px;
-            padding-bottom: 260px;
-        }
-        .main-content {
-            flex-grow: 1;
-            padding: 20px;
-        }
+
         .mb {
             padding-bottom: 46rem;
         }
-        .strengh {
-            width: 20rem;
-            height: 10rem;
-            margin-top: 3rem;
-        }
-        .nav-item:hover {
-            background-color: #343a40;
-            /* Change this to the color you want on hover */
-        }
+
         .dp {
             display: flex;
             justify-content: space-around;
         }
+
+        .flex-shrink-0 {
+            height: 100vh;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .btn-toggle {
+            font-weight: 600;
+            color: #495057;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            text-align: left;
+            font-size: 1.5rem;
+        }
+
+        .btn-toggle:hover,
+        .btn-toggle:focus {
+            background-color: #ced4da;
+            color: #212529;
+        }
+
+        .btn-toggle-nav a {
+            padding: 0.5rem 1.5rem;
+            color: #495057;
+            transition: color 0.2s ease;
+            font-size: 1.3rem;
+        }
+
+        .btn-toggle-nav a:hover {
+            color: #007bff;
+        }
+
+        .btn-toggle-nav a.active {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .collapse.show {
+            background-color: #f1f3f5;
+        }
+
+        .collapse {
+            padding-left: 0.75rem;
+        }
+
+        .list-unstyled {
+            padding-left: 0;
+        }
+
+        .border-bottom {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .link-body-emphasis {
+            color: #212529;
+        }
+
+        .link-body-emphasis:hover {
+            color: #007bff;
+            text-decoration: none;
+        }
+
         .pagination {
             display: inline-block;
         }
+
         .pagination a {
             font-weight: bold;
             font-size: 18px;
@@ -114,52 +195,168 @@ if (!$regexResult){
             text-decoration: none;
             border: 1px solid black;
         }
+
         .pagination a.active {
             background-color: pink;
         }
+
         .pagination a:hover:not(.active) {
             background-color: skyblue;
         }
+
         .table-font {
             font-size: 20px;
         }
+
+        #sidebar.show {
+            display: block;
+        }
+
+        .menu-icon {
+            font-size: 1.8rem;
+            cursor: pointer;
+        }
     </style>
 </head>
+
 <body>
     <div class="container-fluid">
-        <nav class="bg-dark">
-            <ul class="nav nav-item">
-                <li class="nav-item"><a class="nav-link p-4 fs-3 text-white" href="?module=home&action=dashboard"><i class="fa-solid fa-house"><span class="ms-3">DashBoard</span></i></a></li>
+        <div class="menu-icon">
+            <i class="fa-solid fa-bars" id="menu-icon"></i>
+        </div>
+        <div class="flex-shrink-0 p-3 sidebar" id="sidebar" style="width: 280px;">
+            <ul class="list-unstyled ps-0">
+                <li class="mb-1 pb-2">
+                    <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed" data-bs-toggle="collapse" data-bs-target="#home-collapse" aria-expanded="false">
+                        Trang home
+                    </button>
+                    <div class="collapse" id="home-collapse" style="">
+                        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+                            <li><a href="?module=home&action=dashboard" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Dashboard</a></li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="mb-1 pb-2">
+                    <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed" data-bs-toggle="collapse" data-bs-target="#account-collapse" aria-expanded="false">
+                        Quản lý tài khoản
+                    </button>
+                    <div class="collapse" id="account-collapse" style="">
+                        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+                            <?php if (checkPrivilege('\?module=user&action=list')) { ?>
+                                <li><a href="?module=user&action=list" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Trang người dùng</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=user&action=add')) { ?>
+                                <li><a href="?module=user&action=add" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Thêm người dùng</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=user&action=edit&id=[0-9]*')) { ?>
+                                <li><a href="?module=user&action=edit" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Cập nhật người dùng</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=user&action=delete&id=[0-9]*')) { ?>
+                                <li><a href="?module=user&action=delete" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Xóa người dùng</a></li>
+                            <?php } ?>
+                        </ul>
+                    </div>
+                </li>
+                <li class="mb-1 pb-2">
+                    <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed" data-bs-toggle="collapse" data-bs-target="#student-collapse" aria-expanded="false">
+                        Quản lý sinh viên
+                    </button>
+                    <div class="collapse" id="student-collapse" style="">
+                        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+                            <?php if (checkPrivilege('\?module=students&action=view')) { ?>
+                                <li><a href="?module=students&action=view" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Trang sinh viên</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=students&action=add')) { ?>
+                                <li><a href="?module=students&action=add" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Thêm sinh viên</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=students&action=update&student_id=[0-9]*')) { ?>
+                                <li><a href="?module=students&action=update" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Cập nhật sinh viên</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=students&action=delete&student_id=[0-9]*')) { ?>
+                                <li><a href="?module=students&action=delete" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Xóa sinh viên</a></li>
+                            <?php } ?>
+                        </ul>
+                    </div>
+                </li>
+                <li class="mb-1 pb-2">
+                    <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed" data-bs-toggle="collapse" data-bs-target="#section-collapse" aria-expanded="false">
+                        Quản lý học phần
+                    </button>
+                    <div class="collapse" id="section-collapse" style="">
+                        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+                            <?php if (checkPrivilege('\?module=course&action=view_course')) { ?>
+                                <li><a href="?module=course&action=view_course" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Trang học phần</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=course&action=add_course')) { ?>
+                                <li><a href="?module=course&action=add_course" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Thêm học phần</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=course&action=update_course&course_id=[0-9]*')) { ?>
+                                <li><a href="?module=course&action=update_course" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Cập nhật học phần</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=course&action=delete_course&course_id=[0-9]*')) { ?>
+                                <li><a href="?module=course&action=delete_course" class="l-ink-body-emphasis d-inline-flex text-decoration-none rounded">Xóa học phần</a></li>
+                            <?php } ?>
+                        </ul>
+                    </div>
+                </li>
+                <li class="mb-1 pb-2">
+                    <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed" data-bs-toggle="collapse" data-bs-target="#transcript-collapse" aria-expanded="false">
+                        Quản lý bảng điểm
+                    </button>
+                    <div class="collapse" id="transcript-collapse" style="">
+                        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+                            <?php if (checkPrivilege('\?module=scoresheets&action=student_courses')) { ?>
+                                <li><a href="?module=scoresheets&action=student_courses" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Trang bảng điểm</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=scoresheets&action=add_score')) { ?>
+                                <li><a href="?module=scoresheets&action=add_score" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Thêm bảng điểm</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=scoresheets&action=edit_scoresheets&id=[0-9]*')) { ?>
+                                <li><a href="?module=scoresheets&action=edit_scoresheets" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Cập nhật bảng điểm</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=scoresheets&action=delete_score&id=[0-9]*')) { ?>
+                                <li><a href="?module=scoresheets&action=delete_score" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Xóa bảng điểm</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=scoresheets&action=print')) { ?>
+                                <li><a href="?module=scoresheets&action=print" class="link-body-emphasis d-inline-flex text-decoration-none rounded">In bảng điểm</a></li>
+                            <?php } ?>
+                        </ul>
+                    </div>
+                </li>
+                <li class="mb-1">
+                    <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed" data-bs-toggle="collapse" data-bs-target="#recognize-collapse" aria-expanded="false">
+                        Kết quả công nhận điểm
+                    </button>
+                    <div class="collapse" id="recognize-collapse" style="">
+                        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+                            <?php if (checkPrivilege('\?module=viewdetail&action=view_result')) { ?>
+                                <li><a href="?module=viewdetail&action=view_result" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Trang kết quả công nhận điểm</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=viewdetail&action=add_result')) { ?>
+                                <li><a href="?module=viewdetail&action=add_result" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Thêm kết quả công nhận điểm</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=viewdetail&action=edit_result&result_id=[0-9]*')) { ?>
+                                <li><a href="?module=viewdetail&action=edit_result" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Cập nhật kết quả công nhận điểm</a></li>
+                            <?php } ?>
+                            <?php if (checkPrivilege('\?module=viewdetail&action=delete_result&result_id=[0-9]*')) { ?>
+                                <li><a href="?module=viewdetail&action=delete_result" class="link-body-emphasis d-inline-flex text-decoration-none rounded">Xóa kết quả công nhận điểm</a></li>
+                            <?php } ?>
+                        </ul>
+                    </div>
+                </li>
             </ul>
-            <ul class="nav flex-column fs-4">
-                <?php if(checkPrivilege('\?module=user&action=list')) { ?>
-                <li class="nav-item mb-3 "><a class="nav-link text-white" href="?module=user&action=list">Quản lý tài khoản</a></li>
-                <?php } ?>
-                <?php if(checkPrivilege('\?module=students&action=view')) { ?>
-                <li class="nav-item mb-3 "><a class="nav-link text-white" href="?module=students&action=view">Quản lý sinh viên</a></li>
-                <?php } ?>
-                <?php if(checkPrivilege('\?module=course&action=view_course')) { ?>
-                <li class="nav-item mb-3 "><a class="nav-link text-white" href="?module=course&action=view_course">Quản lý học phần</a></li>
-                <?php } ?>
-                <?php if(checkPrivilege('\?module=viewdetail&action=view_result')) { ?>
-                <li class="nav-item mb-3 "><a class="nav-link text-white" href="?module=viewdetail&action=view_result">Quản lý kết quả công nhận điểm</a></li>
-                <?php } ?>
-                <?php if(checkPrivilege('\?module=scoresheets&action=print')) { ?>
-                <li class="nav-item mb-3 "><a class="nav-link text-white" href="?module=scoresheets&action=print">In ấn bảng điểm</a></li>
-                <?php } ?>
-            </ul>
-        </nav>
+        </div>
 
         <div class="container">
             <hr>
             <h2>Quản Lý bảng điểm</h2>
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span>
-                    <?php if(checkPrivilege('\?module=scoresheets&action=add_score')) { ?>
-                    <a href="?module=scoresheets&action=add_score" class="btn btn-success btn-sm fs-5">Thêm điểm<i class="fa-solid fa-plus ms-2"></i></a>
+                <div>
+                    <?php if (checkPrivilege('\?module=scoresheets&action=add_score')) { ?>
+                        <a href="?module=scoresheets&action=add_score" class="btn btn-success btn-sm fs-5">Thêm điểm<i class="fa-solid fa-plus ms-2"></i></a>
                     <?php } ?>
                     <a href="?module=scoresheets&action=print" class="btn btn-success btn-sm fs-5">In bảng điểm</a>
-                </span>
+                </div>
 
                 <!-- Thanh tìm kiếm -->
                 <form method="GET" action="">
@@ -187,11 +384,11 @@ if (!$regexResult){
                     <th>Điểm cuối kỳ</th>
                     <th>Điểm T10</th>
                     <th>Điểm chữ</th>
-                    <?php if(checkPrivilege('\?module=scoresheets&action=edit_scoresheets&id=[0-9]*')) { ?>
-                    <th width="5%">Sửa</th>
+                    <?php if (checkPrivilege('\?module=scoresheets&action=edit_scoresheets&id=[0-9]*')) { ?>
+                        <th width="5%">Sửa</th>
                     <?php } ?>
-                    <?php if(checkPrivilege('\?module=scoresheets&action=delete_score&id=[0-9]*')) { ?>
-                    <th width="5%">Xóa</th>
+                    <?php if (checkPrivilege('\?module=scoresheets&action=delete_score&id=[0-9]*')) { ?>
+                        <th width="5%">Xóa</th>
                     <?php } ?>
                 </thead>
                 <tbody>
@@ -210,11 +407,11 @@ if (!$regexResult){
                                 <td><?php echo $item['final_score']; ?></td>
                                 <td><?php echo $item['T10_point']; ?></td>
                                 <td><?php echo $item['letter_grades']; ?></td>
-                                <?php if(checkPrivilege('\?module=scoresheets&action=edit_scoresheets&id=[0-9]*')) { ?>
-                                <td><a href="<?php echo _WEB_HOST; ?>?module=scoresheets&action=edit_scoresheets&id=<?php echo $item['id']; ?>" class="btn btn-warning btn-sm"><i class="fa-solid fa-pen-to-square"></i></a></td>
+                                <?php if (checkPrivilege('\?module=scoresheets&action=edit_scoresheets&id=[0-9]*')) { ?>
+                                    <td><a href="<?php echo _WEB_HOST; ?>?module=scoresheets&action=edit_scoresheets&id=<?php echo $item['id']; ?>" class="btn btn-warning btn-sm"><i class="fa-solid fa-pen-to-square"></i></a></td>
                                 <?php } ?>
-                                <?php if(checkPrivilege('\?module=scoresheets&action=delete_score&id=[0-9]*')) { ?>
-                                <td><a href="<?php echo _WEB_HOST; ?>?module=scoresheets&action=delete_score&id=<?php echo $item['id']; ?>" onclick="return confirm('Bạn có chắc muốn xóa?')" class="btn btn-warning btn-sm"><i class="fa-solid fa-trash"></i></a></td>
+                                <?php if (checkPrivilege('\?module=scoresheets&action=delete_score&id=[0-9]*')) { ?>
+                                    <td><a href="<?php echo _WEB_HOST; ?>?module=scoresheets&action=delete_score&id=<?php echo $item['id']; ?>" onclick="return confirm('Bạn có chắc muốn xóa?')" class="btn btn-warning btn-sm"><i class="fa-solid fa-trash"></i></a></td>
                                 <?php } ?>
                             </tr>
                         <?php
@@ -277,6 +474,12 @@ if (!$regexResult){
             </div>
         </div>
     </div>
+    <script>
+        document.getElementById('menu-icon').addEventListener('click', function() {
+            var sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapse');
+        });
+    </script>
 </body>
 
 </html>

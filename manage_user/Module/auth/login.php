@@ -45,59 +45,29 @@ if (isPost()) {
                         'user_id' => $userId,
                         'fullname' => $fullname,
                         'email' => $email,
-                        'tokenlogin' => $tokenLogin
+                        'tokenlogin' => $tokenLogin,
                     ];
-                    $userId = $userData['user_id']; 
+                    $userId = $userData['user_id'];
                     // $userPrivilege = mysqli_query($conn, "SELECT * FROM `user_privilege` INNER JOIN `privilege` ON user_privilege.privilege_id = privilege.id WHERE user_privilege.user_id = 11");
                     $stmt = $conn->prepare(
                         "SELECT * 
                         FROM `user_privilege` 
                         INNER JOIN `privilege` 
                         ON user_privilege.privilege_id = privilege.id 
-                        WHERE user_privilege.user_id = :user_id");
+                        WHERE user_privilege.user_id = :user_id"
+                    );
                     $stmt->execute(['user_id' => $userId]);
                     $userPrivilege = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    if (!empty($userPrivilege)){
+                    if (!empty($userPrivilege)) {
                         $userData['privileges'] = array();
-                        foreach($userPrivilege as $privileges) {
+                        foreach ($userPrivilege as $privileges) {
                             $userData['privileges'][] = $privileges['url_match'];
                         }
                     };
-                    
+
                     // Lưu userData vào session
-                    $_SESSION['userData']['privileges'] = $userData;
-                    // setSession('userData', $userData);
-                    // if ($userData['fullname'] == "kien1232") {
-                    //     $userData['privileges'] = array(
-                        //    '\?module=home&action=dashboard'
-                    //         '\?module=user&action=list',
-                    //         '\?module=user&action=add',
-                    //         '\?module=user&action=edit&id=[0-9]*',
-                    //         '\?module=user&action=delete&id=[0-9]*',
-                    //         '\?module=students&action=view',
-                    //         '\?module=students&action=add',
-                    //         '\?module=students&action=filter',
-                    //         '\?module=students&action=update&student_id=[0-9]*',
-                    //         '\?module=students&action=delete&student_id=[0-9]*',
-                    //         '\?module=scoresheets&action=student_courses',
-                    //         '\?module=scoresheets&action=add_score',
-                    //         '\?module=scoresheets&action=print',
-                    //         '\?module=scoresheets&action=edit_scoresheets&id=[0-9]*',  // [0-9]* cho phép id có thể có số hoặc không
-                    //         '\?module=scoresheets&action=delete_score&id=[0-9]*',
-                    //         '\?module=course&action=view_course',
-                    //         '\?module=course&action=add_course',
-                    //         '\?module=course&action=update_course&course_id=[0-9]*',
-                    //         '\?module=course&action=delete_course&course_id=[0-9]*',
-                    //         '\?module=viewdetail&action=view_result',
-                    //         '\?module=viewdetail&action=add_result',
-                    //         '\?module=viewdetail&action=edit_result&result_id=[0-9]*',
-                    //         '\?module=viewdetail&action=delete_result&result_id=[0-9]*',
-                    //     );
-                    // } else {
-                    //     $userData['privileges'] = array(
-                    //         '\?module=students&action=view',
-                    //     );
-                    // }
+                    setSession('userData', $userData);
+                    // $_SESSION['userData']['privileges'] = $userData;
 
                     // redirect('?module=home&action=dashboard');
                 } else {
@@ -151,7 +121,6 @@ $smg_type = getFlashData('smg_type');
             <hr>
             <p class="text-center fs-5"><a href="?module=auth&action=forgot" class="text-decoration-none">Quên mật khẩu</a></p>
             <p class="text-center fs-5"><a href="?module=auth&action=register" class="text-decoration-none">Đăng ký tài khoản</a></p>
-
         </form>
     </div>
 </div>

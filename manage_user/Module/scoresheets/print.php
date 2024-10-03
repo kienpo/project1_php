@@ -1,5 +1,5 @@
 <?php
-if(!defined('_Code')){
+if (!defined('_Code')) {
     die('Access denied...');
 }
 
@@ -14,22 +14,58 @@ layouts('header', $data);
 // if(!isLogin()){
 //     redirect('?module=auth&action=login');
 // }
-$ListUser = getRaw("
-   SELECT 
-        sc.*, 
-        c.course_name,
-        s.student_name
-    FROM 
-        student_courses sc
-    JOIN 
-        courses c ON sc.course_Id = c.course_id
-    JOIN 
-        students s ON sc.student_Id = s.student_id
-    JOIN
-        results r ON r.student_Id = sc.student_Id AND r.course_Id = sc.course_Id
-    ORDER BY 
-        sc.update_at
-");
+
+$regexResult = checkPrivilege();
+if (!$regexResult) {
+    echo 'Bạn không có quyền truy cập';
+    exit;
+}
+
+// Lấy thông tin người dùng từ session
+if (isset($_SESSION['userData'])) {
+    $userData = $_SESSION['userData'];
+
+    // Kiểm tra xem user_id và fullname có tồn tại trong mảng hay không
+    if (isset($userData['user_id']) && isset($userData['fullname'])) {
+        $userId = $userData['user_id'];
+        $fullname = $userData['fullname'];
+
+        // Khởi tạo câu truy vấn chung cho admin và sinh viên
+        $query = "
+            SELECT 
+                sc.*, 
+                c.course_name,
+                s.student_name
+            FROM 
+                student_courses sc
+            JOIN 
+                courses c ON sc.course_Id = c.course_id
+            JOIN 
+                students s ON sc.student_Id = s.student_id
+            WHERE 1 ";
+
+        // Nếu user không phải là admin, thêm điều kiện để chỉ hiển thị bảng điểm của sinh viên liên kết
+        if ($fullname !== 'admin') {
+            $query .= "AND s.studentId = :userId "; // studentId liên kết với id của user
+        }
+        // Chuẩn bị truy vấn
+        $stmt = $conn->prepare($query);
+
+        // Nếu user không phải là admin, gán giá trị cho biến `:userId`
+        if ($fullname !== 'admin') {
+            $stmt->bindValue(':userId', $userId, PDO::PARAM_INT);
+        }
+        // Thực thi truy vấn
+        $stmt->execute();
+
+        // Lấy danh sách kết quả
+        $ListUser = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        echo "Thông tin user không hợp lệ.";
+    }
+} else {
+    echo "Không tìm thấy thông tin user trong session.";
+}
 
 // echo "<pre>";
 // print_r($ListUser);
@@ -73,9 +109,4 @@ header('Content-Disposition: attachment; filename="Bang_Diem_' . time() . '.xlsx
 $writer = new Xlsx($spreadsheet);
 $writer->save('php://output');
 
-$regexResult = checkPrivilege();
-if (!$regexResult){
-    echo 'Bạn không có quyền truy cập';exit;
-}
 layouts('footer');
-?>
